@@ -10,10 +10,28 @@ from sklearn.ensemble import RandomForestClassifier
 
 train = pd.read_csv("train.csv")
 test = pd.read_csv("test.csv")
+original = pd.read_csv("irrigation_prediction.csv")
+
+print(f"Train size before merge: {len(train)}")
+print(f"Original dataset size: {len(original)}")
 
 test_ids = test["id"]
 test = test.drop(columns=["id"])
 train = train.drop(columns=["id"], errors="ignore")
+
+original = original.drop(columns=["id"], errors="ignore")
+
+original_cols = set(original.columns)
+train_cols = set(train.columns)
+common_cols = list(original_cols & train_cols)
+
+print(f"Common columns found: {common_cols}")
+
+original = original[common_cols]
+train = train[common_cols]
+
+train = pd.concat([train, original], ignore_index=True)
+print(f"Train size after merge: {len(train)}")
 
 X = train.drop(columns=["Irrigation_Need"])
 y = train["Irrigation_Need"]
@@ -29,8 +47,8 @@ for col in X.columns:
         X[col] = le.transform(X[col].astype(str))
         test[col] = le.transform(test[col].astype(str))
 
-X = X.fillna(X.mean())
-test = test.fillna(test.mean())
+X = X.fillna(X.mean(numeric_only=True))
+test = test.fillna(test.mean(numeric_only=True))
 
 scaler = StandardScaler()
 X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
